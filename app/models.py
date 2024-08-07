@@ -25,3 +25,12 @@ class ScanTable(Base):
     file_id = Column(BigInteger, unique=True, nullable=True)
     step2_detail = Column(Text, nullable=True)
     step2detail = Column(Text, nullable=True)
+
+
+class FileStatus(Base):
+    __tablename__ = "file_status"
+    id = Column(BigInteger, primary_key=True, autoincrement=True)
+    file_id = Column(BigInteger, unique=True, nullable=True)
+    gscan_status = Column(Boolean, nullable=True, default=-1)
+    dlp_status = Column(Boolean, nullable=True, default=-1)
+    vt_status = Column(Boolean, nullable=True, default=-1)
