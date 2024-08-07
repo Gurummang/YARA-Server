@@ -9,7 +9,7 @@ logger = logging.getLogger(__name__)
 
 # 환경 변수 로드
 dotenv_path = os.path.join(os.path.dirname(__file__), "..", ".env")
-load_dotenv(dotenv_path)
+# load_dotenv(dotenv_path)
 
 # 환경 변수 설정
 MYSQL_HOST = os.getenv("MYSQL_HOST")
