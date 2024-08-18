@@ -64,14 +64,20 @@ def start_consuming(queue_name, yara_rules, RoutingKey):
         try:
             logging.info(f"QUEUE: {queue_name}")
             logging.info(f"Received message: {body}")
-            # UTF-8로 디코딩 시도
-            message = body.decode("utf-8")
-            logging.info(f"Decoded message: {message}")
-            file_id = int(message)
+
+            # UTF-8로 디코딩하지 않고, 바로 Long 타입으로 변환 시도
+            if body is None:
+                logging.error("Received None message")
+                return
+
+            # 메시지가 바이트 스트림으로 들어온다고 가정하고 변환 시도
+            file_id = int.from_bytes(
+                body, byteorder="big", signed=False
+            )  # 바이트를 정수로 변환
+            logging.info(f"Converted file_id: {file_id}")
+
             scan_file(file_id, yara_rules)
 
-        except UnicodeDecodeError as e:
-            logging.error(f"Error decoding message as UTF-8: {e}")
         except Exception as e:
             logging.error(f"Error processing message: {e}")
 
