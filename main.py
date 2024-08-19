@@ -36,9 +36,8 @@ async def lifespan(app: FastAPI):
         rules["exe"] = load_yara_rules(os.path.join(RULES_DIR, "exe"))
         rules["img"] = load_yara_rules(os.path.join(RULES_DIR, "img"))
         rules["doc"] = load_yara_rules(os.path.join(RULES_DIR, "doc"))
-        print("YARA rules loaded and compiled successfully.")
+        logging.info("YARA rules loaded and compiled successfully.")
     except Exception as e:
-        print(f"Failed to load YARA rules: {e}")
         logging.error(f"Failed to load YARA rules: {e}")
 
     Thread(
