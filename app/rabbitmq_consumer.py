@@ -65,18 +65,24 @@ def start_consuming(queue_name, yara_rules, RoutingKey):
             logging.info(f"QUEUE: {queue_name}")
             logging.info(f"Received message: {body}")
 
-            # UTF-8로 디코딩하지 않고, 바로 Long 타입으로 변환 시도
             if body is None:
                 logging.error("Received None message")
                 return
 
-            # 메시지가 바이트 스트림으로 들어온다고 가정하고 변환 시도
-            file_id = int.from_bytes(
-                body, byteorder="big", signed=False
-            )  # 바이트를 정수로 변환
-            logging.info(f"Converted file_id: {file_id}")
+            # 바이트 스트림을 UTF-8 문자열로 변환
+            message_str = body.decode('utf-8')
+            logging.info(f"Decoded message: {message_str}")
 
-            scan_file(file_id, yara_rules)
+            # 문자열을 정수로 변환 시도 (예: 파일 ID가 숫자로 구성된 문자열인 경우)
+            try:
+                file_id = int(message_str)
+                logging.info(f"Converted file_id: {file_id}")
+
+                # 파일 ID를 사용하여 파일을 스캔
+                scan_file(file_id, yara_rules)
+            except ValueError:
+                logging.error(f"Failed to convert message to an integer: {message_str}")
+                # 문자열을 숫자로 변환할 수 없을 때의 처리 로직 추가 (필요한 경우)
 
         except Exception as e:
             logging.error(f"Error processing message: {e}")
