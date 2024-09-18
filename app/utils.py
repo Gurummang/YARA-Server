@@ -16,7 +16,7 @@ from app import (
     MYSQL_USER,
 )
 from app.models import FileScanRequest
-
+from app.rabbitmq_sender import send_message
 
 def load_yara_rules(directory):
     rule_files = []
@@ -74,7 +74,7 @@ def stream_file_from_s3(s3_key):
         raise
 
 
-def save_scan_result(file_id, detect, detail):
+def save_scan_result(uploadId: int, stored_file_id, detect, detail):
     try:
         conn = mysql.connector.connect(
             host=MYSQL_HOST, user=MYSQL_USER, password=MYSQL_PASSWORD, database=MYSQL_DB
@@ -84,7 +84,7 @@ def save_scan_result(file_id, detect, detail):
         try:
             cursor.execute(
                 "INSERT INTO scan_table (file_id, detect, step2_detail) VALUES (%s, %s, %s)",
-                (file_id, detect, detail),
+                (stored_file_id, detect, detail),
             )
             conn.commit()  # 첫 번째 쿼리 커밋
         except Exception as e:
@@ -94,9 +94,10 @@ def save_scan_result(file_id, detect, detail):
 
         try:
             cursor.execute(
-                "UPDATE file_status SET gscan_status = 1 WHERE file_id = %s", (file_id,)
+                "UPDATE file_status SET gscan_status = 1 WHERE file_id = %s", (stored_file_id,)
             )
             conn.commit()  # 두 번째 쿼리 커밋
+            send_message(uploadId) # RabbitMQ 전송: Alerts
         except Exception as e:
             conn.rollback()  # 두 번째 쿼리 롤백
             logging.error(f"Failed to update file_status: {e}")
@@ -147,21 +148,17 @@ def yara_test_match(file_path, yara_rules):
     return detect, detail
 
 
-def scan_file(file_id: int, yara_rules):
+def scan_file(upload_id: int, yara_rules):
     try:
-        conn = mysql.connector.connect(
-            host=MYSQL_HOST, user=MYSQL_USER, password=MYSQL_PASSWORD, database=MYSQL_DB
-        )
-        cursor = conn.cursor(dictionary=True)
-        cursor.execute("SELECT * FROM stored_file WHERE id = %s", (file_id,))
-        file_record = cursor.fetchone()
-        cursor.close()
-        conn.close()
+        # 파일 업로드 정보 가져오기
+        file_record = get_file_upload(upload_id)
+        salted_hash = file_record["salted_hash"]
 
-        if not file_record:
-            raise HTTPException(status_code=404, detail="File not found")
-
-        s3_key = file_record["save_path"]
+        # 저장된 파일 정보 가져오기
+        stored_file_record = get_stored_file(salted_hash)
+        stored_file_id = stored_file_record["id"]
+        s3_key = stored_file_record["save_path"]
+    
         file_stream = stream_file_from_s3(s3_key)
 
         # 파일 전체를 한 번에 읽음
@@ -182,7 +179,49 @@ def scan_file(file_id: int, yara_rules):
         logging.info(f"detail: {detail}")
         logging.info(f"most_common_keyword: {most_common_keyword}")
 
-        save_scan_result(file_id, detect, most_common_keyword)
+        save_scan_result(upload_id, stored_file_id, detect, most_common_keyword)
     except Exception as e:
         logging.error(f"Error scanning file: {e}")
         raise HTTPException(status_code=500, detail="Error scanning file")
+    
+
+def get_stored_file(hash:str):
+    try:
+        conn = mysql.connector.connect(
+            host=MYSQL_HOST, user=MYSQL_USER, password=MYSQL_PASSWORD, database=MYSQL_DB
+        )
+        cursor = conn.cursor(dictionary=True)
+        cursor.execute("SELECT * FROM stored_file WHERE salted_hash = %s", (hash,))
+        stored_file_record = cursor.fetchone()
+        cursor.close()
+        conn.close()
+
+        if not stored_file_record:
+            raise HTTPException(status_code=404, detail="File not found in stored_file table")
+
+        return stored_file_record
+
+    except Exception as e:
+        logging.error(f"Error fetching stored file record: {e}")
+        raise HTTPException(status_code=500, detail="Error fetching stored file record")
+
+
+def get_file_upload(file_id: int):
+    try:
+        conn = mysql.connector.connect(
+            host=MYSQL_HOST, user=MYSQL_USER, password=MYSQL_PASSWORD, database=MYSQL_DB
+        )
+        cursor = conn.cursor(dictionary=True)
+        cursor.execute("SELECT * FROM file_upload WHERE id = %s", (file_id,))
+        file_record = cursor.fetchone()
+        cursor.close()
+        conn.close()
+
+        if not file_record:
+            raise HTTPException(status_code=404, detail="File not found in file_upload table")
+
+        return file_record
+
+    except Exception as e:
+        logging.error(f"Error fetching file upload record: {e}")
+        raise HTTPException(status_code=500, detail="Error fetching file upload record")
