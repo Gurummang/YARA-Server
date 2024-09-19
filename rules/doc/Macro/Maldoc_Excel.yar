@@ -5,6 +5,7 @@ rule Detect_XLS_Macro
         author = "Your Name"
         date = "2024-06-25"
         atk_type = "Exploit"
+    
 
     strings:
         $ole_header = {D0 CF 11 E0 A1 B1 1A E1}

@@ -19,6 +19,7 @@ rule Detect_DOCX_Embedded_Objects
     meta:
         description = "Detects embedded objects in DOCX files"
         author = "Your Name"
+        atk_type = "Macro"
         date = "2024-06-25"
 
     strings:
@@ -32,7 +33,7 @@ rule Detect_DOCX_Embedded_Objects
 rule Detect_DOCX_External_Links
 {
     meta:
-      atk_type = "Macro"
+        atk_type = "Macro"
         description = "Detects external links in DOCX files"
         author = "Your Name"
         date = "2024-06-25"
