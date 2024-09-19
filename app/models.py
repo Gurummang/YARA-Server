@@ -1,5 +1,5 @@
 from pydantic import BaseModel
-from sqlalchemy import BigInteger, Boolean, Column, Integer, Text
+from sqlalchemy import BigInteger, Boolean, Column, Integer, Text, String, DateTime
 from sqlalchemy.ext.declarative import declarative_base
 
 Base = declarative_base()
@@ -34,3 +34,13 @@ class FileStatus(Base):
     gscan_status = Column(Boolean, nullable=True, default=-1)
     dlp_status = Column(Boolean, nullable=True, default=-1)
     vt_status = Column(Boolean, nullable=True, default=-1)
+
+
+class FileUpload(Base):
+    __tablename__ = "file_upload"
+    id = Column(BigInteger, primary_key=True, autoincrement=True)
+    org_saas_id = Column(Integer, nullable=False)
+    saas_file_id = Column(String(255), nullable=True)
+    upload_ts = Column(DateTime, nullable=True)
+    salted_hash = Column(String(255), nullable=True)
+    deleted = Column(Boolean, default=False, nullable=False)
