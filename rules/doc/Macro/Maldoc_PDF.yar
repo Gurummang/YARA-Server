@@ -27,6 +27,7 @@ rule suspicious_version : PDF raw
 		author = "Glenn Edwards (@hiddenillusion)"
 		version = "0.1"
 		weight = 3
+		atk_type = "Macro"
 		
 	strings:
 		$magic = { 25 50 44 46 }
@@ -40,6 +41,7 @@ rule suspicious_creation : PDF raw
 	meta:
 		author = "Glenn Edwards (@hiddenillusion)"
 		version = "0.1"
+		atk_type = "Macro"
 		weight = 2
 		
 	strings:
@@ -57,6 +59,7 @@ rule multiple_filtering : PDF raw
 meta: 
 author = "Glenn Edwards (@hiddenillusion)"
 version = "0.2"
+atk_type = "Macro"
 weight = 3
 
     strings:
@@ -74,6 +77,7 @@ rule suspicious_title : PDF raw
 		author = "Glenn Edwards (@hiddenillusion)"
 		version = "0.1"
 		weight = 4
+		atk_type = "Macro"
 		
 	strings:
 		$magic = { 25 50 44 46 }
@@ -91,6 +95,7 @@ rule suspicious_author : PDF raw
 	meta:
 		author = "Glenn Edwards (@hiddenillusion)"
 		version = "0.1"
+		atk_type = "Macro"
 		weight = 4
 		
 	strings:
@@ -110,6 +115,7 @@ rule suspicious_producer : PDF raw
 	meta:
 		author = "Glenn Edwards (@hiddenillusion)"
 		version = "0.1"
+		atk_type = "Macro"
 		weight = 2
 		
 	strings:
@@ -127,6 +133,7 @@ rule suspicious_creator : PDF raw
 	meta:
 		author = "Glenn Edwards (@hiddenillusion)"
 		version = "0.1"
+		atk_type = "Macro"
 		weight = 3
 		
 	strings:
@@ -145,6 +152,7 @@ rule possible_exploit : PDF raw
 	meta:
 		author = "Glenn Edwards (@hiddenillusion)"
 		version = "0.1"
+		atk_type = "Macro"
 		weight = 3
 		
 	strings:
@@ -170,6 +178,7 @@ rule shellcode_blob_metadata : PDF raw
         meta:
                 author = "Glenn Edwards (@hiddenillusion)"
                 version = "0.1"
+				atk_type = "Macro"
                 description = "When there's a large Base64 blob inserted into metadata fields it often indicates shellcode to later be decoded"
                 weight = 4
         strings:
@@ -191,6 +200,7 @@ rule suspicious_js : PDF raw
 	meta:
 		author = "Glenn Edwards (@hiddenillusion)"
 		version = "0.1"
+		atk_type = "Macro"
 		weight = 3
 		
 	strings:
@@ -212,6 +222,7 @@ rule suspicious_launch_action : PDF raw
 	meta:
 		author = "Glenn Edwards (@hiddenillusion)"
 		version = "0.1"
+		atk_type = "Macro"
 		weight = 2
 		
 	strings:
@@ -232,6 +243,7 @@ rule suspicious_embed : PDF raw
 	meta:
 		author = "Glenn Edwards (@hiddenillusion)"
 		version = "0.1"
+		atk_type = "Macro"
 		ref = "https://feliam.wordpress.com/2010/01/13/generic-pdf-exploit-hider-embedpdf-py-and-goodbye-av-detection-012010/"
 		weight = 2
 		
@@ -253,6 +265,7 @@ rule suspicious_obfuscation : PDF raw
 	meta:
 		author = "Glenn Edwards (@hiddenillusion)"
 		version = "0.1"
+		atk_type = "Macro"
 		weight = 2
 		
 	strings:
@@ -270,6 +283,7 @@ rule invalid_XObject_js : PDF raw
 		description = "XObject's require v1.4+"
 		ref = "https://blogs.adobe.com/ReferenceXObjects/"
 		version = "0.1"
+		atk_type = "Macro"
 		weight = 2
 		
 	strings:
@@ -288,6 +302,7 @@ rule invalid_trailer_structure : PDF raw
 	meta:
 		author = "Glenn Edwards (@hiddenillusion)"
 		version = "0.1"
+		atk_type = "Macro"
 		weight = 1
 		
         strings:
@@ -305,6 +320,7 @@ rule multiple_versions : PDF raw
 	meta:
 		author = "Glenn Edwards (@hiddenillusion)"
 		version = "0.1"
+		atk_type = "Macro"
         description = "Written very generically and doesn't hold any weight - just something that might be useful to know about to help show incremental updates to the file being analyzed"		
 		weight = 1
 		
@@ -322,6 +338,7 @@ rule js_wrong_version : PDF raw
 	meta:
 		author = "Glenn Edwards (@hiddenillusion)"
 		description = "JavaScript was introduced in v1.3"
+		atk_type = "Macro"
 		ref = "http://wwwimages.adobe.com/www.adobe.com/content/dam/Adobe/en/devnet/pdf/pdfs/pdf_reference_1-7.pdf"
 		version = "0.1"
 		weight = 2
@@ -342,6 +359,7 @@ rule JBIG2_wrong_version : PDF raw
 		description = "JBIG2 was introduced in v1.4"
 		ref = "http://wwwimages.adobe.com/www.adobe.com/content/dam/Adobe/en/devnet/pdf/pdfs/pdf_reference_1-7.pdf"
 		version = "0.1"
+		atk_type = "Macro"
 		weight = 1
 		
         strings:
@@ -360,6 +378,7 @@ rule FlateDecode_wrong_version : PDF raw
 		description = "Flate was introduced in v1.2"
 		ref = "http://wwwimages.adobe.com/www.adobe.com/content/dam/Adobe/en/devnet/pdf/pdfs/pdf_reference_1-7.pdf"
 		version = "0.1"
+		atk_type = "Macro"
 		weight = 1
 		
         strings:
@@ -378,6 +397,7 @@ rule embed_wrong_version : PDF raw
 		description = "EmbeddedFiles were introduced in v1.3"
 		ref = "http://wwwimages.adobe.com/www.adobe.com/content/dam/Adobe/en/devnet/pdf/pdfs/pdf_reference_1-7.pdf"
 		version = "0.1"
+		atk_type = "Macro"
 		weight = 1
 		
         strings:
@@ -396,6 +416,7 @@ rule invalid_xref_numbers : PDF raw
 			version = "0.1"
 			description = "The first entry in a cross-reference table is always free and has a generation number of 65,535"
 			notes = "This can be also be in a stream..."
+			atk_type = "Macro"
 			weight = 1
 		
         strings:
@@ -413,6 +434,7 @@ rule js_splitting : PDF raw
                 version = "0.1"
                 description = "These are commonly used to split up JS code"
                 weight = 2
+				atk_type = "Macro"
                 
         strings:
                 $magic = { 25 50 44 46 }
@@ -433,6 +455,7 @@ rule header_evasion : PDF raw
                 description = "3.4.1, 'File Header' of Appendix H states that ' Acrobat viewers require only that the header appear somewhere within the first 1024 bytes of the file.'  Therefore, if you see this trigger then any other rule looking to match the magic at 0 won't be applicable"
                 ref = "http://wwwimages.adobe.com/www.adobe.com/content/dam/Adobe/en/devnet/pdf/pdfs/pdf_reference_1-7.pdf"
                 version = "0.1"
+				atk_type = "Macro"
                 weight = 3
 
         strings:
@@ -446,6 +469,7 @@ rule BlackHole_v2 : PDF raw
 	meta:
 		author = "Glenn Edwards (@hiddenillusion)"
 		version = "0.1"
+		atk_type = "Macro"
 		ref = "http://fortknoxnetworks.blogspot.no/2012/10/blackhhole-exploit-kit-v-20-url-pattern.html"
 		weight = 3
 		
@@ -463,6 +487,7 @@ rule XDP_embedded_PDF : PDF raw
 	meta:
 		author = "Glenn Edwards (@hiddenillusion)"
 		version = "0.1"
+		atk_type = "Macro"
 		ref = "http://blog.9bplus.com/av-bypass-for-malicious-pdfs-using-xdp"
         weight = 1		
 
@@ -480,6 +505,7 @@ rule XDP_embedded_PDF : PDF raw
 rule PDF_Embedded_Exe : PDF
 {
 	meta:
+		atk_type = "Macro"
 		ref = "https://github.com/jacobsoo/Yara-Rules/blob/master/PDF_Embedded_Exe.yar"
 	strings:
     	$header = {25 50 44 46}
@@ -492,6 +518,7 @@ rule PDF_Embedded_Exe : PDF
 rule Detect_PDF_Embedded_Files
 {
     meta:
+		atk_type = "Macro"
         description = "Detects embedded files in PDF files"
         author = "groommang"
         date = "2024-06-25"
@@ -507,7 +534,7 @@ rule Detect_PDF_Embedded_Files
 rule Detect_PDF_Suspicious_AcroForms
 {
     meta:
-      atk_type = "Macro"
+      	atk_type = "Macro"
         description = "Detects suspicious AcroForms in PDF files"
         author = "groommang"
         date = "2024-06-25"
