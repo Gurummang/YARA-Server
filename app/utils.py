@@ -18,6 +18,7 @@ from app import (
 from app.models import FileScanRequest
 from app.rabbitmq_sender import send_message
 
+
 def load_yara_rules(directory):
     rule_files = []
 
@@ -30,12 +31,15 @@ def load_yara_rules(directory):
     # YARA 룰 컴파일
     if rule_files:
         valid_rule_files = []
+        failed_rule_files = []
         for rule_file in rule_files:
             try:
                 yara.compile(filepath=rule_file)
                 valid_rule_files.append(rule_file)
             except yara.Error as e:
+                failed_rule_files.append(rule_file)
                 logging.error(f"Failed to compile YARA rule {rule_file}: {e}")
+                logging.error(f"Skipping rule {rule_file}")
 
         if valid_rule_files:
             try:
@@ -94,10 +98,11 @@ def save_scan_result(uploadId: int, stored_file_id, detect, detail):
 
         try:
             cursor.execute(
-                "UPDATE file_status SET gscan_status = 1 WHERE file_id = %s", (stored_file_id,)
+                "UPDATE file_status SET gscan_status = 1 WHERE file_id = %s",
+                (stored_file_id,),
             )
             conn.commit()  # 두 번째 쿼리 커밋
-            send_message(uploadId) # RabbitMQ 전송: Alerts
+            send_message(uploadId)  # RabbitMQ 전송: Alerts
         except Exception as e:
             conn.rollback()  # 두 번째 쿼리 롤백
             logging.error(f"Failed to update file_status: {e}")
@@ -158,7 +163,7 @@ def scan_file(upload_id: int, yara_rules):
         stored_file_record = get_stored_file(salted_hash)
         stored_file_id = stored_file_record["id"]
         s3_key = stored_file_record["save_path"]
-    
+
         file_stream = stream_file_from_s3(s3_key)
 
         # 파일 전체를 한 번에 읽음
@@ -183,9 +188,9 @@ def scan_file(upload_id: int, yara_rules):
     except Exception as e:
         logging.error(f"Error scanning file: {e}")
         raise HTTPException(status_code=500, detail="Error scanning file")
-    
 
-def get_stored_file(hash:str):
+
+def get_stored_file(hash: str):
     try:
         conn = mysql.connector.connect(
             host=MYSQL_HOST, user=MYSQL_USER, password=MYSQL_PASSWORD, database=MYSQL_DB
@@ -197,7 +202,9 @@ def get_stored_file(hash:str):
         conn.close()
 
         if not stored_file_record:
-            raise HTTPException(status_code=404, detail="File not found in stored_file table")
+            raise HTTPException(
+                status_code=404, detail="File not found in stored_file table"
+            )
 
         return stored_file_record
 
@@ -218,7 +225,9 @@ def get_file_upload(file_id: int):
         conn.close()
 
         if not file_record:
-            raise HTTPException(status_code=404, detail="File not found in file_upload table")
+            raise HTTPException(
+                status_code=404, detail="File not found in file_upload table"
+            )
 
         return file_record
 

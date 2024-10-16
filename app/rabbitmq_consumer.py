@@ -22,9 +22,13 @@ if RABBITMQ_SSL_ENABLED:
     ssl_context = ssl.create_default_context(purpose=ssl.Purpose.SERVER_AUTH)
     ssl_options = pika.SSLOptions(context=ssl_context)
 
+# 최대 재시도 횟수 설정
+MAX_RETRIES = 10
+
 
 def connect_to_rabbitmq():
-    while True:
+    retry_count = 0
+    while retry_count < MAX_RETRIES:
         try:
             credentials = pika.PlainCredentials(RABBITMQ_USER, RABBITMQ_PASSWORD)
             parameters = pika.ConnectionParameters(
@@ -39,14 +43,22 @@ def connect_to_rabbitmq():
             connection = pika.BlockingConnection(parameters)
             return connection
         except pika.exceptions.AMQPConnectionError as e:
+            retry_count += 1
             logging.error(
-                f"Connection failed, retrying in {RETRY_INTERVAL} seconds... Error: {e}"
+                f"Connection failed, retrying ({retry_count}/{MAX_RETRIES}) in {RETRY_INTERVAL} seconds... Error: {e}"
             )
             time.sleep(RETRY_INTERVAL)
+
+    logging.error(f"Failed to connect to RabbitMQ after {MAX_RETRIES} attempts.")
+    return None
 
 
 def start_consuming(queue_name, yara_rules, RoutingKey):
     connection = connect_to_rabbitmq()
+    if not connection:
+        logging.error("Failed to establish connection to RabbitMQ. Exiting.")
+        return
+
     channel = connection.channel()
 
     # Exchange 선언
@@ -70,8 +82,15 @@ def start_consuming(queue_name, yara_rules, RoutingKey):
                 return
 
             # 바이트 스트림을 UTF-8 문자열로 변환
-            message_str = body.decode('utf-8')
-            logging.info(f"Decoded message: {message_str}")
+            try:
+                message_str = body.decode("utf-8")
+                logging.info(f"Decoded message: {message_str}")
+            except UnicodeDecodeError:
+                logging.error(f"Failed to decode message: {body}")
+                ch.basic_nack(
+                    delivery_tag=method.delivery_tag, requeue=False
+                )  # 실패한 메시지 확인 후 재시도 하지 않음
+                return
 
             # 문자열을 정수로 변환 시도 (예: 파일 ID가 숫자로 구성된 문자열인 경우)
             try:
@@ -80,15 +99,35 @@ def start_consuming(queue_name, yara_rules, RoutingKey):
 
                 # 파일 ID를 사용하여 파일을 스캔
                 scan_file(file_id, yara_rules)
+                ch.basic_ack(
+                    delivery_tag=method.delivery_tag
+                )  # 정상 처리 후 메시지 확인
             except ValueError:
                 logging.error(f"Failed to convert message to an integer: {message_str}")
-                # 문자열을 숫자로 변환할 수 없을 때의 처리 로직 추가 (필요한 경우)
+                ch.basic_nack(
+                    delivery_tag=method.delivery_tag, requeue=True
+                )  # 실패한 메시지 다시 큐로 보내기
 
         except Exception as e:
             logging.error(f"Error processing message: {e}")
+            ch.basic_nack(
+                delivery_tag=method.delivery_tag, requeue=True
+            )  # 예외 발생 시 메시지 재처리
+            log_failed_message(queue_name, body)
+
+    # 실패한 메시지 로그 저장
+    def log_failed_message(queue_name, body):
+        try:
+            with open(f"failed_messages_{queue_name}.log", "a") as f:
+                f.write(f"Failed message: {body}\n")
+            logging.info(f"Logged failed message to failed_messages_{queue_name}.log")
+        except Exception as e:
+            logging.error(f"Failed to log message: {e}")
 
     channel.basic_consume(
-        queue=queue_name, on_message_callback=on_message, auto_ack=True
+        queue=queue_name,
+        on_message_callback=on_message,
+        auto_ack=False,  # auto_ack=False로 설정하여 수동으로 처리
     )
     logging.info(f"Waiting for messages in {queue_name}. To exit press CTRL+C")
     channel.start_consuming()
