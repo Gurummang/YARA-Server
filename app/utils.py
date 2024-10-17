@@ -41,8 +41,8 @@ def load_yara_rules(directory):
                 valid_rule_files.append(rule_file)
             except yara.Error as e:
                 failed_rule_files.append(rule_file)
-                logging.error(f"Failed to compile YARA rule {rule_file}: {e}")
-                logging.error(f"Skipping rule {rule_file}")
+                logging.info(f"Failed to compile YARA rule {rule_file}: {e}")
+                logging.info(f"Skipping rule {rule_file}")
 
         if valid_rule_files:
             try:
@@ -54,13 +54,13 @@ def load_yara_rules(directory):
                 )
                 return compiled_rules
             except yara.Error as e:
-                logging.error(f"Failed to compile YARA rules: {e}")
+                logging.info(f"Failed to compile YARA rules: {e}")
                 return None
         else:
-            logging.error(f"No valid YARA rule files found in {directory}")
+            logging.info(f"No valid YARA rule files found in {directory}")
             return None
     else:
-        logging.error(f"No YARA rule files found in {directory}")
+        logging.info(f"No YARA rule files found in {directory}")
         return None
 
 
