@@ -27,6 +27,7 @@ def load_yara_rules(directory):
 
     # 주어진 디렉토리 내의 모든 YARA 파일 찾기
     for root, dirs, files in os.walk(directory):
+        logging.info(f"Scanning directory: {root}")  # 현재 디렉토리 로그에 남기기
         for file in files:
             if file.endswith(".yar"):
                 rule_files.append(os.path.join(root, file))
