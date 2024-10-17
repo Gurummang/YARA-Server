@@ -2,6 +2,9 @@ import logging
 import os
 from collections import defaultdict
 
+from datetime import datetime
+import pytz
+
 import boto3
 import mysql.connector
 import yara
@@ -97,11 +100,18 @@ def save_scan_result(uploadId: int, stored_file_id, detect, detail):
             raise  # 예외를 다시 발생시켜 상위 호출자에게 전달
 
         try:
+            # 대한민국 시간대 (Asia/Seoul)
+            tz = pytz.timezone('Asia/Seoul')
+            # 현재 시간 가져오기
+            seoul_time = datetime.now(tz)
+            logging.info(f"uploadId: {uploadId}, complete:{seoul_time.strftime('%Y-%m-%d %H:%M:%S')}")
+            
             cursor.execute(
                 "UPDATE file_status SET gscan_status = 1 WHERE file_id = %s",
                 (stored_file_id,),
             )
             conn.commit()  # 두 번째 쿼리 커밋
+
             send_message(uploadId)  # RabbitMQ 전송: Alerts
         except Exception as e:
             conn.rollback()  # 두 번째 쿼리 롤백
