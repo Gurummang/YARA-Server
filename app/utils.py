@@ -30,6 +30,7 @@ def load_yara_rules(directory):
         logging.info(f"Scanning directory: {root}")  # 현재 디렉토리 로그에 남기기
         for file in files:
             if file.endswith(".yar"):
+                logging.info(f"Scanning file: {file}")  # 현재 디렉토리 로그에 남기기
                 rule_files.append(os.path.join(root, file))
 
     # YARA 룰 컴파일
@@ -40,6 +41,7 @@ def load_yara_rules(directory):
             try:
                 yara.compile(filepath=rule_file)
                 valid_rule_files.append(rule_file)
+                logging.info(f"Success to compile YARA {rule_file}")
             except yara.Error as e:
                 failed_rule_files.append(rule_file)
                 logging.info(f"Failed to compile YARA rule {rule_file}: {e}")
@@ -136,6 +138,7 @@ def select_keyword(matches):
     for match in matches:
         if "atk_type" in match.meta:
             atk_type = match.meta["atk_type"]
+            logging.info(f"match: {match} atk_type: {atk_type}")
             keyword_count[atk_type] += 1
 
     # 가장 많이 매칭된 atk_type 값 추출
