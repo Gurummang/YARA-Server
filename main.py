@@ -14,9 +14,11 @@ from app import (
     EXE_SCAN_QUEUE,
     IMG_ROUTING_KEY,
     IMG_SCAN_QUEUE,
+    ALL_SCAN_QUEUE,
+    ALL_ROUTING_KEY
 )
 from app.rabbitmq_consumer import start_consuming
-from app.utils import load_yara_rules
+from app.utils import load_yara_rules, match_multiple_rules
 
 app = FastAPI()
 
@@ -33,9 +35,9 @@ async def lifespan(app: FastAPI):
 
     try:
         # YARA 규칙을 로드하고 컴파일
-        rules["exe"] = load_yara_rules(os.path.join(RULES_DIR, "exe"))
-        rules["img"] = load_yara_rules(os.path.join(RULES_DIR, "img"))
-        rules["doc"] = load_yara_rules(os.path.join(RULES_DIR, "doc"))
+        rules["exe"], exe_files = load_yara_rules(os.path.join(RULES_DIR, "exe"))
+        rules["img"], img_files = load_yara_rules(os.path.join(RULES_DIR, "img"))
+        rules["doc"], doc_files = load_yara_rules(os.path.join(RULES_DIR, "doc"))
         logging.info("YARA rules loaded and compiled successfully.")
     except Exception as e:
         logging.error(f"Failed to load YARA rules: {e}")
@@ -48,6 +50,12 @@ async def lifespan(app: FastAPI):
     ).start()
     Thread(
         target=start_consuming, args=(DOC_SCAN_QUEUE, rules["doc"], DOC_ROUTING_KEY)
+    ).start()
+    # ALL QUEUE에는 모든 규칙 적용
+    all_rules_matcher = match_multiple_rules(doc_files, exe_files, img_files)
+    Thread(
+        target=start_consuming, 
+        args=(ALL_SCAN_QUEUE, all_rules_matcher, ALL_ROUTING_KEY)
     ).start()
 
     yield
