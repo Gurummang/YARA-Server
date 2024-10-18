@@ -2,6 +2,9 @@ import logging
 import os
 from collections import defaultdict
 
+from datetime import datetime
+import pytz
+
 import boto3
 import mysql.connector
 import yara
@@ -19,11 +22,38 @@ from app.models import FileScanRequest
 from app.rabbitmq_sender import send_message
 
 
+def match_multiple_rules(*rule_file_lists):
+    """
+    여러 YARA 룰셋의 파일 경로를 병합하고 컴파일된 하나의 룰셋을 반환하는 함수.
+    """
+    all_rule_files = {}
+    rule_index = 0
+
+    # 각 룰셋의 파일 경로 리스트에서 유효한 룰 파일들을 수집
+    for rule_files in rule_file_lists:
+        for i, rule_file in enumerate(rule_files):
+            all_rule_files[str(rule_index + i)] = rule_file
+        rule_index += len(rule_files)
+
+    if all_rule_files:
+        try:
+            # 여러 YARA 룰 파일을 하나의 룰셋으로 컴파일
+            compiled_rules = yara.compile(filepaths=all_rule_files)
+            return compiled_rules
+        except yara.Error as e:
+            logging.error(f"Failed to compile merged YARA rules: {e}")
+            return None
+    else:
+        logging.info("No valid YARA rule files found for merging.")
+        return None
+
+
 def load_yara_rules(directory):
     rule_files = []
 
     # 주어진 디렉토리 내의 모든 YARA 파일 찾기
     for root, dirs, files in os.walk(directory):
+        # logging.info(f"Scanning directory: {root}")  # 현재 디렉토리 로그에 남기기
         for file in files:
             if file.endswith(".yar"):
                 rule_files.append(os.path.join(root, file))
@@ -38,8 +68,8 @@ def load_yara_rules(directory):
                 valid_rule_files.append(rule_file)
             except yara.Error as e:
                 failed_rule_files.append(rule_file)
-                logging.error(f"Failed to compile YARA rule {rule_file}: {e}")
-                logging.error(f"Skipping rule {rule_file}")
+                logging.info(f"Failed to compile YARA rule {rule_file}: {e}")
+                logging.info(f"Skipping rule {rule_file}")
 
         if valid_rule_files:
             try:
@@ -49,16 +79,16 @@ def load_yara_rules(directory):
                 logging.info(
                     f"Compiled {len(valid_rule_files)} YARA rules from {directory}"
                 )
-                return compiled_rules
+                return compiled_rules, valid_rule_files
             except yara.Error as e:
-                logging.error(f"Failed to compile YARA rules: {e}")
-                return None
+                logging.info(f"Failed to compile YARA rules: {e}")
+                return None, valid_rule_files
         else:
-            logging.error(f"No valid YARA rule files found in {directory}")
-            return None
+            logging.info(f"No valid YARA rule files found in {directory}")
+            return None, []
     else:
-        logging.error(f"No YARA rule files found in {directory}")
-        return None
+        logging.info(f"No YARA rule files found in {directory}")
+        return None, []
 
 
 def stream_file_from_s3(s3_key):
@@ -97,11 +127,18 @@ def save_scan_result(uploadId: int, stored_file_id, detect, detail):
             raise  # 예외를 다시 발생시켜 상위 호출자에게 전달
 
         try:
+            # 대한민국 시간대 (Asia/Seoul)
+            tz = pytz.timezone('Asia/Seoul')
+            # 현재 시간 가져오기
+            seoul_time = datetime.now(tz)
+            logging.info(f"uploadId: {uploadId}, complete:{seoul_time.strftime('%Y-%m-%d %H:%M:%S')}")
+
             cursor.execute(
                 "UPDATE file_status SET gscan_status = 1 WHERE file_id = %s",
                 (stored_file_id,),
             )
             conn.commit()  # 두 번째 쿼리 커밋
+
             send_message(uploadId)  # RabbitMQ 전송: Alerts
         except Exception as e:
             conn.rollback()  # 두 번째 쿼리 롤백
@@ -125,14 +162,14 @@ def select_keyword(matches):
     for match in matches:
         if "atk_type" in match.meta:
             atk_type = match.meta["atk_type"]
+            logging.info(f"match: {match} atk_type: {atk_type}")
             keyword_count[atk_type] += 1
-
-    # atk_type 목록 추출
-    logging.info(f"atk_type list: {keyword_count.keys()}")
 
     # 가장 많이 매칭된 atk_type 값 추출
     if keyword_count:
-        return keyword_count.keys()
+        most_common_keyword = max(keyword_count, key=keyword_count.get)
+        print(f"Most common atk_type: {most_common_keyword}")
+        return most_common_keyword
     else:
         print("No atk_type found in matches")
         return None
@@ -175,7 +212,7 @@ def scan_file(upload_id: int, yara_rules):
 
         detect = 1 if matches else 0
 
-        keywordlist = str(select_keyword(matches))
+        most_common_keyword = select_keyword(matches)
         detail = (
             "\n".join([str(match) for match in matches]) if matches else "unmatched"
         )
@@ -183,9 +220,9 @@ def scan_file(upload_id: int, yara_rules):
         logging.info(f"result: {matches}")
         logging.info(f"detect: {detect}")
         logging.info(f"detail: {detail}")
-        logging.info(f"key word list: {keywordlist}")
+        logging.info(f"most_common_keyword: {most_common_keyword}")
 
-        save_scan_result(upload_id, stored_file_id, detect, keywordlist)
+        save_scan_result(upload_id, stored_file_id, detect, most_common_keyword)
     except Exception as e:
         logging.error(f"Error scanning file: {e}")
         raise HTTPException(status_code=500, detail="Error scanning file")
