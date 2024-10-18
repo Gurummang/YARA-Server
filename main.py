@@ -35,15 +35,15 @@ async def lifespan(app: FastAPI):
     exe_files, img_files, doc_files = [], [], []  # 기본값 설정
 
     try:
-        # YARA 규칙을 로드하고 컴파일
-        rules["exe"], exe_files = load_yara_rules(os.path.join(RULES_DIR, "exe"))
-        rules["img"], img_files = load_yara_rules(os.path.join(RULES_DIR, "img"))
-        rules["doc"], doc_files = load_yara_rules(os.path.join(RULES_DIR, "doc"))
+        # YARA 규칙을 로드하고 컴파일 (await 추가)
+        rules["exe"], exe_files = await load_yara_rules(os.path.join(RULES_DIR, "exe"))
+        rules["img"], img_files = await load_yara_rules(os.path.join(RULES_DIR, "img"))
+        rules["doc"], doc_files = await load_yara_rules(os.path.join(RULES_DIR, "doc"))
         logging.info("YARA rules loaded and compiled successfully.")
     except Exception as e:
         logging.error(f"Failed to load YARA rules: {e}")
 
-    # 비동기 작업으로 start_consuming을 실행
+    # 비동기 작업으로 start_consuming을 실행 (await 생략 가능)
     asyncio.create_task(start_consuming(EXE_SCAN_QUEUE, rules["exe"], EXE_ROUTING_KEY))
     asyncio.create_task(start_consuming(IMG_SCAN_QUEUE, rules["img"], IMG_ROUTING_KEY))
     asyncio.create_task(start_consuming(DOC_SCAN_QUEUE, rules["doc"], DOC_ROUTING_KEY))
