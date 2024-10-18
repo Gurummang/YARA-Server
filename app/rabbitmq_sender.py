@@ -1,9 +1,9 @@
 import logging
 import ssl
-import time
 import struct
 import pika
 import aio_pika
+import asyncio
 
 from app import (
     ALERT_EXCHANGE_NAME,
@@ -16,6 +16,7 @@ from app import (
     RABBITMQ_USER,
     RETRY_INTERVAL,
 )
+MAX_RETRIES = 10
 
 # SSL 설정
 ssl_options = None
@@ -24,26 +25,34 @@ if RABBITMQ_SSL_ENABLED:
     ssl_options = pika.SSLOptions(context=ssl_context)
 
 
-def connect_to_rabbitmq():
-    while True:
+async def connect_to_rabbitmq():
+    retry_count = 0
+    while retry_count < MAX_RETRIES:
         try:
-            credentials = pika.PlainCredentials(RABBITMQ_USER, RABBITMQ_PASSWORD)
-            parameters = pika.ConnectionParameters(
+            ssl_context = None
+            if RABBITMQ_SSL_ENABLED:
+                ssl_context = ssl.create_default_context()
+                ssl_context.check_hostname = False
+                ssl_context.verify_mode = ssl.CERT_NONE
+
+            connection = await aio_pika.connect_robust(
                 host=RABBITMQ_HOST,
                 port=int(RABBITMQ_PORT),
-                credentials=credentials,
-                ssl_options=ssl_options,
-                connection_attempts=3,
-                retry_delay=5,
-                socket_timeout=10.0,  # 타임아웃 설정 (초)
+                login=RABBITMQ_USER,
+                password=RABBITMQ_PASSWORD,
+                ssl=ssl_context,
+                loop=asyncio.get_event_loop()  # asyncio 이벤트 루프 사용
             )
-            connection = pika.BlockingConnection(parameters)
             return connection
-        except pika.exceptions.AMQPConnectionError as e:
+        except aio_pika.AMQPConnectionError as e:
+            retry_count += 1
             logging.error(
-                f"Connection failed, retrying in {RETRY_INTERVAL} seconds... Error: {e}"
+                f"Connection failed, retrying ({retry_count}/{MAX_RETRIES}) in {RETRY_INTERVAL} seconds... Error: {e}"
             )
-            time.sleep(RETRY_INTERVAL)
+            await asyncio.sleep(RETRY_INTERVAL)
+
+    logging.error(f"Failed to connect to RabbitMQ after {MAX_RETRIES} attempts.")
+    return None
 
 
 async def send_message(message: int):
