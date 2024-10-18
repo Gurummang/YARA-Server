@@ -24,19 +24,6 @@ rule EntryPointZero
         pe.entry_point == 0x0
 }
 
-rule MissingDigitalSignature
-{
-    meta:
-        atk_type= "missing_certificate"
-        description = "Detects PE files that do not have a digital signature"
-
-    condition:
-        uint16(0) == 0x5A4D and         
-        pe.is_pe and                     
-        pe.number_of_signatures == 0    
-}
-
-
 rule SC_Signed_Executable_With_Custom_Elliptic_Curve_Parameters
 {
 
