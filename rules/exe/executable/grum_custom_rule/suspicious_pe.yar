@@ -24,6 +24,47 @@ rule EntryPointZero
         pe.entry_point == 0x0
 }
 
+rule missing_certificate
+{
+    meta:
+        atk_type= "missing_certificate"
+        description = "Detects PE files that do not have a digital signature"
+    condition:
+        uint16(0) == 0x5A4D and         
+        pe.is_pe and                     
+        pe.number_of_signatures == 0    
+}
+
+rule SectionSizeGreaterThanImageSize
+{
+    meta:
+        atk_type= "suspicious_section"
+        description = "Detects if any section size is greater than image size"
+
+    condition:
+        uint16(0) == 0x5A4D and
+        pe.is_pe and
+        for any i in (0..pe.number_of_sections - 1) : (
+            pe.sections[i].raw_data_size > pe.size_of_image
+        )
+}
+
+rule TextSectionLargerThanHalfImageSize
+{
+    meta:
+        atk_type= "suspicious_section"
+        description = "Detects if .text section is larger than half of the image size"
+
+    condition:
+        uint16(0) == 0x5A4D and
+        pe.is_pe and
+        (pe.characteristics & 0x2000 == 0) and // .dll 파일이 아닌지 확인
+        (pe.characteristics & 0x0002 != 0) and // .exe 파일인지 확인
+        for any i in (0..pe.number_of_sections - 1) : (
+                pe.sections[i].name == ".text" and pe.sections[i].raw_data_size > pe.size_of_image * 0.5
+        )
+}
+
 rule SC_Signed_Executable_With_Custom_Elliptic_Curve_Parameters
 {
 
