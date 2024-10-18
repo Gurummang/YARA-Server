@@ -1,6 +1,7 @@
 import asyncio
 import logging
 import os
+import functools
 from collections import defaultdict
 from datetime import datetime
 import pytz
@@ -86,11 +87,16 @@ async def stream_file_from_s3(s3_key):
 
     try:
         loop = asyncio.get_event_loop()
-        response = await loop.run_in_executor(None, s3_client.get_object, {"Bucket": bucket_name, "Key": key})
+        # functools.partial로 키워드 인자를 전달할 수 있도록 함
+        response = await loop.run_in_executor(
+            None, functools.partial(s3_client.get_object, Bucket=bucket_name, Key=key)
+        )
         return response["Body"]
     except Exception as e:
         logging.error(f"Failed to stream file from S3: {e}")
         raise
+
+
 
 
 async def save_scan_result(uploadId: int, stored_file_id, detect, detail):
@@ -101,7 +107,8 @@ async def save_scan_result(uploadId: int, stored_file_id, detect, detail):
         async with conn.cursor() as cursor:
             try:
                 await cursor.execute(
-                    "INSERT INTO scan_table (file_id, detect, step2_detail) VALUES (%s, %s, %s)",
+                    "INSERT INTO scan_table (file_id, detect, step2_detail) VALUES (%s, %s, %s) "
+                    "ON DUPLICATE KEY UPDATE detect=VALUES(detect), step2_detail=VALUES(step2_detail)",
                     (stored_file_id, detect, detail),
                 )
                 await conn.commit()
@@ -125,7 +132,7 @@ async def save_scan_result(uploadId: int, stored_file_id, detect, detail):
         raise
 
 
-async def select_keyword(matches):
+def select_keyword(matches):
     keyword_count = defaultdict(int)
 
     for match in matches:
@@ -134,12 +141,14 @@ async def select_keyword(matches):
             keyword_count[atk_type] += 1
 
     if keyword_count:
-        most_common_keyword = max(keyword_count, key=keyword_count.get)
-        logging.info(f"Most common atk_type: {most_common_keyword}")
-        return most_common_keyword
+        # 가장 많이 매칭된 atk_type 값을 추출
+        keywords = str(keyword_count.keys())
+        logging.info(f"Most common atk_type: {keywords}")
+        return keywords
     else:
         logging.info("No atk_type found in matches")
-        return None
+        return "unmatched"  # None 대신 기본값 반환
+
 
 
 async def yara_test_match(file_path, yara_rules):
@@ -161,21 +170,31 @@ async def yara_test_match(file_path, yara_rules):
 
 async def scan_file(upload_id: int, yara_rules):
     try:
+        # 파일 업로드 정보 가져오기
         file_record = await get_file_upload(upload_id)
         salted_hash = file_record["salted_hash"]
 
+        # 저장된 파일 정보 가져오기
         stored_file_record = await get_stored_file(salted_hash)
         stored_file_id = stored_file_record["id"]
         s3_key = stored_file_record["save_path"]
 
         file_stream = await stream_file_from_s3(s3_key)
-        file_data = await file_stream.read()
 
+        # S3에서 반환된 file_stream은 이미 bytes 객체입니다.
+        file_data = file_stream.read()  # 여기에서 read()는 필요 없음, file_stream 자체가 파일 데이터임
+
+        # YARA 룰 매칭
         matches = yara_rules.match(data=file_data)
+
         detect = 1 if matches else 0
 
-        most_common_keyword = await select_keyword(matches)
-        detail = "\n".join([str(match) for match in matches]) if matches else "unmatched"
+        most_common_keyword = select_keyword(matches)
+        if most_common_keyword is None:
+            most_common_keyword = "unmatched"
+        detail = (
+            "\n".join([str(match) for match in matches]) if matches else "unmatched"
+        )
 
         logging.info(f"result: {matches}")
         logging.info(f"detect: {detect}")
@@ -186,6 +205,7 @@ async def scan_file(upload_id: int, yara_rules):
     except Exception as e:
         logging.error(f"Error scanning file: {e}")
         raise HTTPException(status_code=500, detail="Error scanning file")
+
 
 
 async def get_stored_file(hash: str):

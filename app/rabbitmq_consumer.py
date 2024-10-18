@@ -51,33 +51,34 @@ async def connect_to_rabbitmq() -> Optional[Connection]:
 
 
 async def on_message(message: IncomingMessage, yara_rules):
-    async with message.process():
+    try:
+        body = message.body
+        logging.info(f"Received message: {body}")
+
+        if not body:
+            logging.error("Received empty message")
+            await message.nack(requeue=False)  # 재처리 없이 nack
+            return
+
         try:
-            body = message.body
-            logging.info(f"Received message: {body}")
+            message_str = body.decode("utf-8")
+            logging.info(f"Decoded message: {message_str}")
+        except UnicodeDecodeError:
+            logging.error(f"Failed to decode message: {body}")
+            await message.nack(requeue=False)  # 재처리 없이 nack
+            return
 
-            if not body:
-                logging.error("Received empty message")
-                return
-
-            try:
-                message_str = body.decode("utf-8")
-                logging.info(f"Decoded message: {message_str}")
-            except UnicodeDecodeError:
-                logging.error(f"Failed to decode message: {body}")
-                await message.nack(requeue=False)  # 잘못된 메시지 재처리 안 함
-                return
-
-            try:
-                file_id = int(message_str)
-                logging.info(f"Processing file with ID: {file_id}")
-                await scan_file(file_id, yara_rules)
-            except ValueError:
-                logging.error(f"Invalid file ID format: {message_str}")
-                await message.nack(requeue=False)  # 잘못된 파일 ID 재처리 안 함
-        except Exception as e:
-            logging.exception(f"Error processing message: {e}")
-            await message.nack(requeue=True)  # 예외 발생 시 메시지 재처리 가능
+        try:
+            file_id = int(message_str)
+            logging.info(f"Processing file with ID: {file_id}")
+            await scan_file(file_id, yara_rules)
+            await message.ack()  # 성공적으로 처리되면 ack
+        except ValueError:
+            logging.error(f"Invalid file ID format: {message_str}")
+            await message.nack(requeue=False)  # 잘못된 파일 ID는 재처리 안 함
+    except Exception as e:
+        logging.exception(f"Error processing message: {e}")
+        await message.nack(requeue=False)  # 예외 발생 시 메시지를 재처리 가능
 
 
 async def start_consuming(queue_name: str, yara_rules, routing_key: str):
@@ -96,11 +97,20 @@ async def start_consuming(queue_name: str, yara_rules, routing_key: str):
         await queue.bind(exchange, routing_key)
 
         logging.info(f"Waiting for messages in {queue_name}. To exit press CTRL+C")
-        await queue.consume(lambda message: on_message(message, yara_rules))
 
-        try:
-            await asyncio.Future()  # 무한 대기
-        finally:
+        async def shutdown():
+            logging.info("Shutting down consumer.")
             await connection.close()
+
+        # 메시지를 처리하는 부분에 shutdown 처리 로직을 추가
+        loop = asyncio.get_event_loop()
+        try:
+            await queue.consume(lambda message: on_message(message, yara_rules))
+            await asyncio.Future()  # 무한 대기
+        except asyncio.CancelledError:
+            await shutdown()
+        finally:
+            await shutdown()  # 종료 시 RabbitMQ 연결 정리
     except Exception as e:
         logging.exception(f"Error in start_consuming: {e}")
+
