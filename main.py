@@ -40,15 +40,10 @@ async def lifespan(app: FastAPI):
     except Exception as e:
         logging.error(f"Failed to load YARA rules: {e}")
 
-    Thread(
-        target=start_consuming, args=(EXE_SCAN_QUEUE, rules["exe"], EXE_ROUTING_KEY)
-    ).start()
-    Thread(
-        target=start_consuming, args=(IMG_SCAN_QUEUE, rules["img"], IMG_ROUTING_KEY)
-    ).start()
-    Thread(
-        target=start_consuming, args=(DOC_SCAN_QUEUE, rules["doc"], DOC_ROUTING_KEY)
-    ).start()
+    # 비동기 작업으로 start_consuming을 실행
+    asyncio.create_task(start_consuming(EXE_SCAN_QUEUE, rules["exe"], EXE_ROUTING_KEY))
+    asyncio.create_task(start_consuming(IMG_SCAN_QUEUE, rules["img"], IMG_ROUTING_KEY))
+    asyncio.create_task(start_consuming(DOC_SCAN_QUEUE, rules["doc"], DOC_ROUTING_KEY))
 
     yield
 

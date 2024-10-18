@@ -127,11 +127,12 @@ def select_keyword(matches):
             atk_type = match.meta["atk_type"]
             keyword_count[atk_type] += 1
 
+    # atk_type 목록 추출
+    logging.info(f"atk_type list: {keyword_count.keys()}")
+
     # 가장 많이 매칭된 atk_type 값 추출
     if keyword_count:
-        most_common_keyword = max(keyword_count, key=keyword_count.get)
-        print(f"Most common atk_type: {most_common_keyword}")
-        return most_common_keyword
+        return keyword_count.keys()
     else:
         print("No atk_type found in matches")
         return None
@@ -174,7 +175,7 @@ def scan_file(upload_id: int, yara_rules):
 
         detect = 1 if matches else 0
 
-        most_common_keyword = select_keyword(matches)
+        keywordlist = str(select_keyword(matches))
         detail = (
             "\n".join([str(match) for match in matches]) if matches else "unmatched"
         )
@@ -182,9 +183,9 @@ def scan_file(upload_id: int, yara_rules):
         logging.info(f"result: {matches}")
         logging.info(f"detect: {detect}")
         logging.info(f"detail: {detail}")
-        logging.info(f"most_common_keyword: {most_common_keyword}")
+        logging.info(f"key word list: {keywordlist}")
 
-        save_scan_result(upload_id, stored_file_id, detect, most_common_keyword)
+        save_scan_result(upload_id, stored_file_id, detect, keywordlist)
     except Exception as e:
         logging.error(f"Error scanning file: {e}")
         raise HTTPException(status_code=500, detail="Error scanning file")
