@@ -1,11 +1,11 @@
 rule Linux_Trojan_Gafgyt_83715433 {
     meta:
+        atk_type = "Linux.Trojan.Gafgyt"
         author = "Elastic Security"
         id = "83715433-3dff-4238-8cdb-c51279565e05"
         fingerprint = "25ac15f4b903d9e28653dad0db399ebd20d4e9baabf5078fbc33d3cd838dd7e9"
         creation_date = "2021-01-12"
         last_modified = "2021-09-16"
-        atk_type = "Linux.Trojan.Gafgyt"
         reference_sample = "3648a407224634d76e82eceec84250a7506720a7f43a6ccf5873f478408fedba"
         severity = 100
         arch_context = "x86"
@@ -20,12 +20,12 @@ rule Linux_Trojan_Gafgyt_83715433 {
 
 rule Linux_Trojan_Gafgyt_28a2fe0c {
     meta:
+        atk_type = "Linux.Trojan.Gafgyt"
         author = "Elastic Security"
         id = "28a2fe0c-eed5-4c79-81e6-3b11b73a4ebd"
         fingerprint = "a2c6beaec18ca876e8487c11bcc7a29279669588aacb7d3027d8d8df8f5bcead"
         creation_date = "2021-01-12"
         last_modified = "2021-09-16"
-        atk_type = "Linux.Trojan.Gafgyt"
         severity = 100
         arch_context = "x86"
         scan_context = "file, memory"
@@ -39,12 +39,12 @@ rule Linux_Trojan_Gafgyt_28a2fe0c {
 
 rule Linux_Trojan_Gafgyt_eb96cc26 {
     meta:
+        atk_type = "Linux.Trojan.Gafgyt"
         author = "Elastic Security"
         id = "eb96cc26-e6d6-4388-a5da-2501e6e2ea32"
         fingerprint = "73967a3499d5dce61735aa2d352c1db48bb1d965b2934bb924209d729b5eb162"
         creation_date = "2021-01-12"
         last_modified = "2021-09-16"
-        atk_type = "Linux.Trojan.Gafgyt"
         reference_sample = "440318179ba2419cfa34ea199b49ee6bdecd076883d26329bbca6dca9d39c500"
         severity = 100
         arch_context = "x86"
@@ -177,12 +177,12 @@ rule Linux_Trojan_Gafgyt_ae01d978 {
 
 rule Linux_Trojan_Gafgyt_9e9530a7 {
     meta:
+        atk_type = "Linux.Trojan.Gafgyt"
         author = "Elastic Security"
         id = "9e9530a7-ad4d-4a44-b764-437b7621052f"
         fingerprint = "d6ad6512051e87c8c35dc168d82edd071b122d026dce21d39b9782b3d6a01e50"
         creation_date = "2021-01-12"
         last_modified = "2021-09-16"
-        atk_type = "Linux.Trojan.Gafgyt"
         reference_sample = "01da73e0d425b4d97c5ad75c49657f95618b394d09bd6be644eb968a3b894961"
         severity = 100
         arch_context = "x86"
@@ -197,12 +197,12 @@ rule Linux_Trojan_Gafgyt_9e9530a7 {
 
 rule Linux_Trojan_Gafgyt_5bf62ce4 {
     meta:
+        atk_type = "Linux.Trojan.Gafgyt"
         author = "Elastic Security"
         id = "5bf62ce4-619b-4d46-b221-c5bf552474bb"
         fingerprint = "3ffc398303f7208e77c4fbdfb50ac896e531b7cee3be2fa820bc8d70cfb20af3"
         creation_date = "2021-01-12"
         last_modified = "2021-09-16"
-        atk_type = "Linux.Trojan.Gafgyt"
         reference_sample = "4c6aeaa6f6a0c40a3f4116a2e19e669188a8b1678a8930350889da1bab531c68"
         severity = 100
         arch_context = "x86"
@@ -217,12 +217,12 @@ rule Linux_Trojan_Gafgyt_5bf62ce4 {
 
 rule Linux_Trojan_Gafgyt_f3d83a74 {
     meta:
+        atk_type = "Linux.Trojan.Gafgyt"
         author = "Elastic Security"
         id = "f3d83a74-2888-435a-9a3c-b7de25084e9a"
         fingerprint = "1c5df68501b688905484ed47dc588306828aa7c114644428e22e5021bb39bd4a"
         creation_date = "2021-01-12"
         last_modified = "2021-09-16"
-        atk_type = "Linux.Trojan.Gafgyt"
         reference_sample = "275cbd5d3b3d8c521649b95122d90d1ca9b7ae1958b721bdc158aaa2d31d49df"
         severity = 100
         arch_context = "x86"
@@ -237,12 +237,12 @@ rule Linux_Trojan_Gafgyt_f3d83a74 {
 
 rule Linux_Trojan_Gafgyt_807911a2 {
     meta:
+        atk_type = "Linux.Trojan.Gafgyt"
         author = "Elastic Security"
         id = "807911a2-f6ec-4e65-924f-61cb065dafc6"
         fingerprint = "f409037091b7372f5a42bbe437316bd11c655e7a5fe1fcf83d1981cb5c4a389f"
         creation_date = "2021-01-12"
         last_modified = "2021-09-16"
-        atk_type = "Linux.Trojan.Gafgyt"
         severity = 100
         arch_context = "x86"
         scan_context = "file, memory"
