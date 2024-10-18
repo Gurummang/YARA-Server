@@ -48,22 +48,28 @@ def connect_to_rabbitmq():
 
 async def send_message(message: int):
     connection = await connect_to_rabbitmq()
+    if not connection:
+        logging.error("Failed to establish connection to RabbitMQ.")
+        return
+
     async with connection:
         channel = await connection.channel()
 
         # Exchange 선언
-        await channel.declare_exchange(ALERT_EXCHANGE_NAME, aio_pika.ExchangeType.DIRECT, durable=True)
+        exchange = await channel.declare_exchange(
+            ALERT_EXCHANGE_NAME, aio_pika.ExchangeType(EXCHANGE_TYPE), durable=True
+        )
 
         # int 메시지를 바이트로 변환
         message_bytes = struct.pack('!Q', message)  # '!Q'는 unsigned long long 형식입니다.
 
-        await channel.default_exchange.publish(
+        await exchange.publish(
             aio_pika.Message(
                 body=message_bytes,
-                delivery_mode=aio_pika.DeliveryMode.PERSISTENT,
+                delivery_mode=aio_pika.DeliveryMode.PERSISTENT
             ),
-            routing_key=ALERT_ROUTING_KEY,
+            routing_key=ALERT_ROUTING_KEY
         )
 
-        print(f"Sent message: {message}")
+        logging.info(f"Sent message: {message}")
     # connection.close()
