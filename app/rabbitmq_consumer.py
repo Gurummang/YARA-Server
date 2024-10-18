@@ -96,7 +96,6 @@ def start_consuming(queue_name, yara_rules, RoutingKey):
             try:
                 file_id = int(message_str)
                 logging.info(f"Converted file_id: {file_id}")
-                logging.info(f'rules len: {len(yara_rules)}')
                 # 파일 ID를 사용하여 파일을 스캔
                 scan_file(file_id, yara_rules)
                 ch.basic_ack(
