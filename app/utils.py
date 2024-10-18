@@ -41,7 +41,6 @@ def load_yara_rules(directory):
             try:
                 yara.compile(filepath=rule_file)
                 valid_rule_files.append(rule_file)
-                logging.info(f"Success to compile YARA {rule_file}")
             except yara.Error as e:
                 failed_rule_files.append(rule_file)
                 logging.info(f"Failed to compile YARA rule {rule_file}: {e}")
