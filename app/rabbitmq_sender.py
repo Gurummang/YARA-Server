@@ -3,6 +3,7 @@ import ssl
 import time
 import struct
 import pika
+import aio_pika
 
 from app import (
     ALERT_EXCHANGE_NAME,
@@ -45,26 +46,24 @@ def connect_to_rabbitmq():
             time.sleep(RETRY_INTERVAL)
 
 
-def send_message(message: int):
-    connection = connect_to_rabbitmq()
-    channel = connection.channel()
+async def send_message(message: int):
+    connection = await connect_to_rabbitmq()
+    async with connection:
+        channel = await connection.channel()
 
-    # Exchange 선언
-    channel.exchange_declare(
-        exchange=ALERT_EXCHANGE_NAME, exchange_type=EXCHANGE_TYPE, durable=True
-    )
+        # Exchange 선언
+        await channel.declare_exchange(ALERT_EXCHANGE_NAME, aio_pika.ExchangeType.DIRECT, durable=True)
 
-    # int 메시지를 바이트로 변환
-    message_bytes = struct.pack('!Q', message)  # '!Q'는 unsigned long long 형식입니다.
+        # int 메시지를 바이트로 변환
+        message_bytes = struct.pack('!Q', message)  # '!Q'는 unsigned long long 형식입니다.
 
-    channel.basic_publish(
-        exchange=ALERT_EXCHANGE_NAME,
-        routing_key=ALERT_ROUTING_KEY,  # 적절한 라우팅 키로 변경
-        body=message_bytes,
-        properties=pika.BasicProperties(
-            delivery_mode=2  # 메시지 영속화
+        await channel.default_exchange.publish(
+            aio_pika.Message(
+                body=message_bytes,
+                delivery_mode=aio_pika.DeliveryMode.PERSISTENT,
+            ),
+            routing_key=ALERT_ROUTING_KEY,
         )
-    )
 
-    print(f"Sent message: {message}")
-    connection.close()
+        print(f"Sent message: {message}")
+    # connection.close()
