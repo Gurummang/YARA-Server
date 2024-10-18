@@ -21,6 +21,31 @@ from app import (
 from app.models import FileScanRequest
 from app.rabbitmq_sender import send_message
 
+def match_multiple_rules(*rule_file_lists):
+    """
+    여러 YARA 룰셋의 파일 경로를 병합하고 컴파일된 하나의 룰셋을 반환하는 함수.
+    """
+    all_rule_files = {}
+    rule_index = 0
+    
+    # 각 룰셋의 파일 경로 리스트에서 유효한 룰 파일들을 수집
+    for rule_files in rule_file_lists:
+        for i, rule_file in enumerate(rule_files):
+            all_rule_files[str(rule_index + i)] = rule_file
+        rule_index += len(rule_files)
+
+    if all_rule_files:
+        try:
+            # 여러 YARA 룰 파일을 하나의 룰셋으로 컴파일
+            compiled_rules = yara.compile(filepaths=all_rule_files)
+            return compiled_rules
+        except yara.Error as e:
+            logging.error(f"Failed to compile merged YARA rules: {e}")
+            return None
+    else:
+        logging.info("No valid YARA rule files found for merging.")
+        return None
+
 
 def load_yara_rules(directory):
     rule_files = []
@@ -30,7 +55,6 @@ def load_yara_rules(directory):
         logging.info(f"Scanning directory: {root}")  # 현재 디렉토리 로그에 남기기
         for file in files:
             if file.endswith(".yar"):
-                logging.info(f"Scanning file: {file}")  # 현재 디렉토리 로그에 남기기
                 rule_files.append(os.path.join(root, file))
 
     # YARA 룰 컴파일
@@ -54,16 +78,17 @@ def load_yara_rules(directory):
                 logging.info(
                     f"Compiled {len(valid_rule_files)} YARA rules from {directory}"
                 )
-                return compiled_rules
+                return compiled_rules, valid_rule_files
             except yara.Error as e:
                 logging.info(f"Failed to compile YARA rules: {e}")
-                return None
+                return None, valid_rule_files
         else:
             logging.info(f"No valid YARA rule files found in {directory}")
-            return None
+            return None, []
     else:
         logging.info(f"No YARA rule files found in {directory}")
-        return None
+        return None, []
+
 
 
 def stream_file_from_s3(s3_key):
