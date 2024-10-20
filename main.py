@@ -49,7 +49,7 @@ async def lifespan(app: FastAPI):
     asyncio.create_task(start_consuming(DOC_SCAN_QUEUE, rules["doc"], DOC_ROUTING_KEY))
 
     # ALL QUEUE에는 모든 규칙 적용
-    all_rules_matcher = match_multiple_rules(doc_files, exe_files, img_files)
+    all_rules_matcher = await match_multiple_rules(doc_files, exe_files, img_files)
     asyncio.create_task(start_consuming(ALL_SCAN_QUEUE, all_rules_matcher, ALL_ROUTING_KEY))
 
     yield
