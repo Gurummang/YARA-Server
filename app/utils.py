@@ -185,8 +185,9 @@ async def scan_file(upload_id: int, yara_rules):
         file_data = file_stream.read()  # 여기에서 read()는 필요 없음, file_stream 자체가 파일 데이터임
 
         # YARA 룰 매칭
-        matches = yara_rules.match(data=file_data)
-
+        # matches = yara_rules.match(data=file_data)
+        # yara_rules.match는 동기적으로 호출
+        matches = await asyncio.to_thread(yara_rules.match, data=file_data)
         detect = 1 if matches else 0
 
         most_common_keyword = select_keyword(matches)
